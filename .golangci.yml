@@ -1,0 +1,24 @@
+# .golangci.yml
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - revive
+
+  settings:
+    govet:
+      enable:
+        - shadow
+
+    # Example of setting custom linter configuration
+    revive:
+      severity: warning
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
