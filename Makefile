@@ -1,4 +1,4 @@
-VERSION ?= $(shell git describe --tags --always --dirty)
+VERSION ?= $(shell git describe --tags --always)
 BUILD_TIME ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 MAIN_PACKAGE = main
 

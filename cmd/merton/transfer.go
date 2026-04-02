@@ -118,15 +118,23 @@ func (sh *MertonShell) Upload(ctx context.Context, c *client.Client, pr *prompt.
 		log.Printf("Failed to stat local file: %v", statErr)
 		return
 	}
+	// if file size is > threshold, TRY the http server method.
 	if info.Size() > httpThreshold {
-		_, err := serveAndNotify(ctx, c, localPath, remotePath, hostname, port)
-		if err != nil {
-			log.Printf("Failed to serve and notify: %v", err)
-			return
+		fmt.Printf("File size is greater than %d bytes, trying HTTP server method...\n", httpThreshold)
+		if _, err := serveAndNotify(ctx, c, localPath, remotePath, hostname, port); err != nil {
+			log.Printf("HTTP server method failed: %v", err)
+			fmt.Println("Falling back to CopyFile method...")
+			// if error, use the copy file method as fallback.
+			useCopyFile(ctx, c, localPath, remotePath)
 		}
-		return
+	} else {
+		// if file size is < threshold, just use the copy file method
+		useCopyFile(ctx, c, localPath, remotePath)
 	}
 
+}
+
+func useCopyFile(ctx context.Context, c *client.Client, localPath, remotePath string) {
 	bar := progressbar.NewOptions64(-1,
 		progressbar.OptionSetDescription(fmt.Sprintf("Uploading %s", localPath)),
 		progressbar.OptionShowBytes(true),
@@ -150,6 +158,7 @@ func (sh *MertonShell) Upload(ctx context.Context, c *client.Client, pr *prompt.
 		return
 	}
 }
+
 func startServer(hostIP string, port int, filePath string, fileSize int64, bar *progressbar.ProgressBar) error {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -168,15 +177,35 @@ func startServer(hostIP string, port int, filePath string, fileSize int64, bar *
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize))
 
-		io.Copy(w, &reader)
-		file.Close()
+		if _, copyErr := io.Copy(w, &reader); copyErr != nil {
+			log.Printf("failed to stream file: %v", copyErr)
+		}
+		if closeErr := file.Close(); closeErr != nil {
+			log.Printf("failed to close file: %v", closeErr)
+		}
 
-		go server.Shutdown(context.Background())
+		go func() {
+			if shutdownErr := server.Shutdown(context.Background()); shutdownErr != nil {
+				log.Printf("failed to shutdown server: %v", shutdownErr)
+			}
+		}()
 	})
-
+	mux.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if _, writeErr := w.Write([]byte("Shutting down server")); writeErr != nil {
+			log.Printf("failed to write shutdown response: %v", writeErr)
+		}
+		go func() {
+			if shutdownErr := server.Shutdown(context.Background()); shutdownErr != nil {
+				log.Printf("failed to shutdown server: %v", shutdownErr)
+			}
+		}()
+	})
 	ln, err := net.Listen("tcp", server.Addr)
 	if err != nil {
-		file.Close()
+		if closeErr := file.Close(); closeErr != nil {
+			log.Printf("failed to close file: %v", closeErr)
+		}
 		return fmt.Errorf("failed to start listener: %w", err)
 	}
 
@@ -219,7 +248,11 @@ func serveAndNotify(ctx context.Context, c *client.Client, localPath, remotePath
 
 	cmd := fmt.Sprintf("iwr '%s' -OutFile '%s'", fileURL, remotePath)
 	if _, err := c.Execute(ctx, cmd); err != nil {
-		return "", fmt.Errorf("failed to execute remote command: %w", err)
+		// need to shutdown the server if the command fails, otherwise it will keep running until the file is fully downloaded
+		if _, shutdownErr := http.Get(fmt.Sprintf("http://%s:%d/shutdown", localIP, port)); shutdownErr != nil {
+			log.Printf("failed to shutdown server: %v", shutdownErr)
+		}
+		return "", fmt.Errorf("failed to execute download command: %w", err)
 	}
 
 	fmt.Fprintln(os.Stderr)

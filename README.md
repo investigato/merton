@@ -36,7 +36,7 @@ Merton drops you into an interactive prompt that tries not to embarrass itself:
 - Multiline paste that doesn't fire on every newline like it's personally offended
 - `cd` that actually works, because someone had to fix that
 
-If it breaks, it tells you why. Usually.
+If it breaks, it tells you why. Usually...
 
 ---
 

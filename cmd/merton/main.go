@@ -19,8 +19,7 @@ import (
 )
 
 var (
-	version   string
-	buildTime string
+	version string
 )
 
 const (
@@ -44,6 +43,8 @@ type Shell interface {
 	needsCWDRefresh(previous string) bool
 	Download(ctx context.Context, c *client.Client, pr *prompt.Prompt, line string)
 	Upload(ctx context.Context, c *client.Client, pr *prompt.Prompt, line string, hostname string, port int)
+	ServeAndNotify(ctx context.Context, c *client.Client, localPath, remotePath,
+		target string, port int) (string, error)
 	changeServerPort(port int) error
 }
 
@@ -151,11 +152,12 @@ func main() {
 	var domain string
 	var username string
 	var password string
+	var hashes string
 	var usetls bool
 	var insecure bool
 	var targetspn string
 	var realm string
-	var verbose bool
+	var loglevel string
 	var kerberos bool
 	var krb5conf string
 	var krb5ccachepath string
@@ -164,17 +166,18 @@ func main() {
 	var kdcIP string
 	var logFilePath string
 	var serveport int
-
+	var versionFlag bool
 	flag.StringVarP(&hostname, "host", "i", "", "Hostname or IP address of the target")
 	flag.IntVarP(&port, "port", "P", 5985, "Port number to connect to")
 	flag.StringVarP(&domain, "domain", "d", "", "Domain name for authentication")
 	flag.StringVarP(&username, "username", "u", "", "Username for authentication")
 	flag.StringVarP(&password, "password", "p", "", "Password for authentication")
+	flag.StringVarP(&hashes, "hashes", "H", "", "NT hash for authentication")
 	flag.BoolVarP(&usetls, "tls", "t", false, "Use TLS for the connection")
 	flag.BoolVarP(&insecure, "insecure", "", false, "Skip TLS certificate verification")
 	flag.StringVarP(&targetspn, "target-spn", "", "", "Target Service Principal Name (SPN) for Kerberos authentication")
 	flag.StringVarP(&realm, "realm", "r", "", "Kerberos realm for authentication")
-	flag.BoolVarP(&verbose, "verbose", "v", false, "Enable verbose output")
+	flag.StringVarP(&loglevel, "log-level", "", "", "Logging level (debug, info, warn, error)")
 	flag.BoolVarP(&kerberos, "kerberos", "k", false, "Use Kerberos authentication")
 	flag.StringVarP(&krb5conf, "krb5conf", "", "", "Path to krb5.conf file for Kerberos authentication")
 	flag.StringVarP(&krb5ccachepath, "krb5ccache", "", "", "Path to Kerberos credential cache (ccache) file")
@@ -183,8 +186,13 @@ func main() {
 	flag.StringVarP(&kdcIP, "kdc-ip", "", "", "IP address of the Key Distribution Center (KDC) for Kerberos authentication")
 	flag.StringVarP(&logFilePath, "log-file", "", "", "Path to log file for output")
 	flag.IntVarP(&serveport, "serveport", "", 8080, "Port to use for serving files during upload/download operations")
+	flag.BoolVarP(&versionFlag, "version", "V", false, "Display version information and exit")
 	flag.Parse()
 	// Configure the client
+	if versionFlag {
+		fmt.Printf("App Version: %s\n", version)
+		os.Exit(0)
+	}
 	var shellTypeStarter ShellType
 	if winrs {
 		shellTypeStarter = WinRsShell
@@ -204,6 +212,14 @@ func main() {
 	if password != "" {
 		cfg.Password = password
 	}
+	if hashes != "" {
+		parsedHash, err := utils.ParseHash(hashes)
+		if err != nil {
+			log.Fatalf("failed to parse hashes: %v", err)
+		}
+		cfg.NTHash = parsedHash
+
+	}
 	if usetls {
 		cfg.UseTLS = true
 	}
@@ -219,9 +235,7 @@ func main() {
 	if realm != "" {
 		cfg.Realm = realm
 	}
-	// if verbose {
-	// 	// we'll get to this
-	// }
+
 	if kerberos {
 		cfg.AuthType = client.AuthKerberos
 	}
@@ -242,13 +256,10 @@ func main() {
 	// Register the channel to receive SIGINT (Ctrl+C) and SIGTERM (standard termination signal)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
-	// start context and connection process
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	// Create the client
-	c, err := client.New(hostname, cfg)
+	c, err := client.New(hostname, cfg, loglevel)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -257,7 +268,7 @@ func main() {
 	if connectErr := c.Connect(ctx); connectErr != nil {
 		log.Fatal(connectErr)
 	}
-	displayLogo()
+	displayLogo(version)
 	var once sync.Once
 	doCleanup := func() {
 		once.Do(func() {
@@ -271,8 +282,7 @@ func main() {
 	go func() {
 		sig := <-signals
 		log.Printf("Received signal: %s, initiating cleanup", sig.String())
-		doCleanup()
-		// Exit the program after cleanup
+		doCleanup() // no messes!
 		os.Exit(0)
 	}()
 
@@ -435,10 +445,13 @@ func (sh *MertonShell) dispatch(ctx context.Context, c *client.Client, commandLi
 func commandHandler(commandLine string) string {
 	// handle any necessary conversions from powershell to winrs, specifically gci because it doesn't deserialize correctly over psrp
 	var psrpCommandMap = map[string]string{
-		"dir":           "cmd /c dir /a",
-		"ls":            "cmd /c dir /a",
-		"gci":           "cmd /c dir /a",
-		"get-childitem": "cmd /c dir /a",
+		"dir":                  "cmd /c dir /a",
+		"ls":                   "cmd /c dir /a",
+		"gci":                  "cmd /c dir /a",
+		"get-childitem":        "cmd /c dir /a",
+		"get-nettcpconnection": "cmd /c netstat -ano",
+		"get-netipinterface":   "netsh interface show interface",
+		"get-netadapter":       "ipconfig /all",
 	}
 	parts := utils.SplitCommandLine(commandLine)
 	command := parts[0]
@@ -451,10 +464,16 @@ func commandHandler(commandLine string) string {
 	if cmd, ok := psrpCommandMap[strings.ToLower(command)]; ok {
 		// remap together into a single command string to be executed by winrs
 		if len(args) > 0 {
-			// check if args has /a in it and remove it since we add it for the winrs commands, but if the user included it, we should remove it to avoid duplication
+			// check if args has /a in it and remove it since we add it automagically
 			for i, arg := range args {
 				if arg == "/a" {
 					args = append(args[:i], args[i+1:]...)
+					break
+				}
+				// if it has -recurse, then remove it and add /s to the winrs command
+				if arg == "-recurse" {
+					args = append(args[:i], args[i+1:]...)
+					cmd += " /s"
 					break
 				}
 			}
@@ -472,35 +491,11 @@ func commandHandler(commandLine string) string {
 	return commandLine
 }
 
-func winrsCommandHandler(commandLine string) (string, string) {
-	// which execution path do we need? if it DOES NOT need a cmd.exe shell, then we use ExecuteCmd, else use ExecuteCmdShell
-	// cd, chdir, pushd, popd, set, cls, title -> ExecuteCmd, everything else ExecuteCmdShell, all need to split it command, args
-
-	parts := utils.SplitCommandLine(commandLine)
-	command := parts[0]
-	args := []string{}
-	if len(parts) > 1 {
-		args = parts[1:]
-	}
-
-	if len(args) > 0 {
-
-		lastArg := args[len(args)-1]
-		if strings.HasSuffix(lastArg, "\\") && !strings.HasSuffix(lastArg, "\\\\") {
-			args[len(args)-1] += "\\"
-		}
-
-		argsString := utils.SafeJoinArgs(args)
-		return command, argsString
-	}
-	return command, ""
-
-}
 func (sh *MertonShell) formatPrompt(cwd string) string {
 	return fmt.Sprintf("(%s)> %s ", sh.shellType.String(), cwd)
 }
 
-func displayLogo() {
+func displayLogo(version string) {
 	logo := `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⣀⣀⣀⣀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠊⠁⠀⠀⠀⠀⠈⠙⢦⡀⠀
@@ -513,7 +508,8 @@ func displayLogo() {
 ⠀⠀⡖⢧⡀⠀⠈⣦⡤⠤⠊⡏⣀⡴⠊⡹⠀⣠⠞⠀⠀⠀⠀⠀⠀⠀⠀
 ⢶⡞⡟⠦⣌⡓⠾⠥⠤⠴⠒⠋⣁⠴⢊⣤⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⡇⠀⠀⢉⣙⣒⣒⣒⣚⣉⠁⠀⢣⡤⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠙⠒⠒⠚⠒⠋⠉⠉⠀⠈⠓⠚⠁  Merton v0.1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠙⠒⠒⠚⠒⠋⠉⠉⠀⠈⠓⠚⠁  Merton
+   %s
 `
-	fmt.Println(logo)
+	_, _ = fmt.Fprintf(os.Stdout, logo, version)
 }
