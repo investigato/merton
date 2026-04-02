@@ -101,7 +101,7 @@ merton -i <host> -u <username> -p <password> [flags]
 
 ## AI Disclosure
 
-Yup, I used a "you're a senior dev mentor and coach" prompted AI partner to talk architecture, rabbit holes, hunting buggies, and the occasional "no that's wrong and here's why." The latter worked both ways, C-Lo hallucinates like a boss sometimes. All code was written and understood by this actual human and I didn't give it write permissions on these files. Except the stuff in the 3rd party libraries...that's on their devs. This is not a vibe-coded slop factory.
+Yup, I used a "you're a senior dev mentor and coach" prompted AI partner to talk architecture, rabbit holes, hunting buggies, and the occasional "no that's wrong and here's why." The latter worked both ways, C-Lo hallucinates like a boss sometimes. All code was written and understood by this actual human and I didn't give it write permissions on these files. Except the stuff in the 3rd party libraries...that's on their devs. All likely shitty code came from investigato, blame him.
 
 ---
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"merton/internal/utils"
+	"github.com/investigato/merton/internal/utils"
 	"os"
 	"os/signal"
 	"strings"
