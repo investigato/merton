@@ -68,20 +68,26 @@ merton -i <host> -u <username> -p <password> [flags]
 
 | Flag | Default | Description |
 | ---- | ------  | ----------- |
-| `-i` | | Target hostname or IP |
-| `-P` | 5985 | Port |
-| `-u` | | Username |
-| `-p` | | Password |
-| `-d` | | Domain |
-| `-t` | false | Use TLS |
+| `--host, -i` | | Target hostname or IP |
+| `--port, -P` | 5985 | Port |
+| `--username, -u` | | Username |
+| `--password, -p` | | Password |
+| `--hashes, -H` | | Hash |
+| `--domain, -d` | | Domain |
+| `--tls,-t` | false | Use TLS |
 | `--insecure` | false | Skip TLS verification |
-| `-k` | false | Kerberos authentication |
+| `--target-spn` | | Set the Target Service Principal Name (SPN) |
+| `--log-level` | | Log level (info,warn,error,debug) |
+| `--kerberos, -k` | false | Kerberos authentication |
 | `--krb5conf` | | Path to krb5.conf |
 | `--krb5ccache` | | Path to ccache file |
 | `--kdc-ip` | | KDC IP address |
-| `-r` | | Kerberos realm |
+| `--realm, -r` | | Kerberos realm |
+| `--log-file` | | Path to logfile. |
 | `--winrs` | false | Use WinRS (CMD) instead of PSRP (PowerShell) |
+| `--enable-cbt` | false | Enabled Channel Binding Tokens |
 | `--serveport` | 8080 | Port for upload/download HTTP server |
+| `--version, -V` | | Get the app version |
 
 ### Shell Commands
 
@@ -99,13 +105,13 @@ merton -i <host> -u <username> -p <password> [flags]
 
 - WinRS `cd` is client-side tracked, the working directory is set at shell creation per command. Pipes and redirects require explicit `cmd /c`.
 - Upload/download over WinRS is not yet supported.
-- Kerberos keepalive not implemented — long sessions may timeout.
+- Kerberos keepalive not implemented so long sessions may timeout.
 
 ---
 
 ## AI Disclosure
 
-Yup, I used a "you're a senior dev mentor and coach" prompted AI partner to talk architecture, rabbit holes, hunting buggies, and the occasional "no that's wrong and here's why." The latter worked both ways, C-Lo hallucinates like a boss sometimes. All code was written and understood by this actual human and I didn't give it write permissions on these files. Except the stuff in the 3rd party libraries...that's on their devs. Crappy code is investigato's fault.
+Yup, I used a "you're a senior dev mentor and coach" prompted AI partner to talk architecture, rabbit holes, hunting buggies, and the occasional "no that's wrong and here's why." The latter worked both ways, C-Lo hallucinates like a boss sometimes. All code was written and understood by this actual human and I didn't give it write permissions on these files. The 3rd party libraries...that's on their devs. Crappy code here is investigato's fault.
 
 ---
 
