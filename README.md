@@ -1,7 +1,7 @@
 # **Merton**
 
 <div align=center>
-  <img height="150" alt="merton-logo" src="https://raw.githubusercontent.com/investigato/merton/refs/heads/main/assets/merton_small.png" />
+  <img height="150" alt="merton-logo" src="https://github.com/investigato/merton/blob/main/assets/merton_small.png" />
 </div>
 
 ## *What the shell?!*
