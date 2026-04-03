@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,21 +12,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/investigato/merton/internal/utils"
-
 	"github.com/investigato/go-psrp/client"
 	"github.com/investigato/go-psrp/winrs"
 	"github.com/investigato/prompt"
 	flag "github.com/spf13/pflag"
+
+	"github.com/investigato/merton/internal/utils"
 )
 
 var (
-	version string
-)
-
-const (
-	PsrpShellKey  = "psrp"
-	WinRsShellKey = "winrs"
+	version   = "dev"
+	codename  = "unknown"
+	buildTime = "unknown"
 )
 
 type ShellType int
@@ -34,20 +32,6 @@ const (
 	PsrpShell ShellType = iota
 	WinRsShell
 )
-
-type Shell interface {
-	setCWD(newCWD string) error
-	getCWD(ctx context.Context, c *client.Client) (string, error)
-	dispatch(ctx context.Context, c *client.Client, commandLine string) (*client.Result, error)
-	toResult(cmd *client.CmdResult) *client.Result
-	formatPrompt(cwd string) string
-	needsCWDRefresh(previous string) bool
-	Download(ctx context.Context, c *client.Client, pr *prompt.Prompt, line string)
-	Upload(ctx context.Context, c *client.Client, pr *prompt.Prompt, line string, hostname string, port int)
-	ServeAndNotify(ctx context.Context, c *client.Client, localPath, remotePath,
-		target string, port int) (string, error)
-	changeServerPort(port int) error
-}
 
 type MertonShell struct {
 	shellType ShellType
@@ -131,19 +115,19 @@ func (sh *MertonShell) getCWD(ctx context.Context, c *client.Client) (string, er
 }
 func (sh *MertonShell) toResult(cmd *client.CmdResult) *client.Result {
 	// remap Stdout and Stderr to []interface{}
-	output := make([]interface{}, 0, 1)
+	output := make([]any, 0, 1)
 	if cmd.Stdout != "" {
 		output = append(output, cmd.Stdout)
 	}
 
-	errors := make([]interface{}, 0, 1)
+	errorList := make([]any, 0, 1)
 	if cmd.Stderr != "" {
-		errors = append(errors, cmd.Stderr)
+		errorList = append(errorList, cmd.Stderr)
 	}
 
 	return &client.Result{
 		Output: output,
-		Errors: errors,
+		Errors: errorList,
 	}
 }
 
@@ -162,7 +146,7 @@ func main() {
 	var kerberos bool
 	var krb5conf string
 	var krb5ccachepath string
-	var winrs bool
+	var usewinrs bool
 	var enablecbt bool
 	var kdcIP string
 	var logFilePath string
@@ -182,7 +166,7 @@ func main() {
 	flag.BoolVarP(&kerberos, "kerberos", "k", false, "Use Kerberos authentication")
 	flag.StringVarP(&krb5conf, "krb5conf", "", "", "Path to krb5.conf file for Kerberos authentication")
 	flag.StringVarP(&krb5ccachepath, "krb5ccache", "", "", "Path to Kerberos credential cache (ccache) file")
-	flag.BoolVarP(&winrs, "winrs", "", false, "Use WinRS protocol instead of PSRP")
+	flag.BoolVarP(&usewinrs, "winrs", "", false, "Use WinRS protocol instead of PSRP")
 	flag.BoolVarP(&enablecbt, "enable-cbt", "", false, "Enable Client-to-Server Binding (CBT) for Kerberos authentication")
 	flag.StringVarP(&kdcIP, "kdc-ip", "", "", "IP address of the Key Distribution Center (KDC) for Kerberos authentication")
 	flag.StringVarP(&logFilePath, "log-file", "", "", "Path to log file for output")
@@ -191,11 +175,11 @@ func main() {
 	flag.Parse()
 	// Configure the client
 	if versionFlag {
-		fmt.Printf("App Version: %s\n", version)
+		fmt.Printf("App Version: %s\nCodename: %s\nBuild Time: %s\n", version, codename, buildTime)
 		os.Exit(0)
 	}
 	var shellTypeStarter ShellType
-	if winrs {
+	if usewinrs {
 		shellTypeStarter = WinRsShell
 	} else {
 		shellTypeStarter = PsrpShell
@@ -269,7 +253,7 @@ func main() {
 	if connectErr := c.Connect(ctx); connectErr != nil {
 		log.Fatal(connectErr)
 	}
-	displayLogo(version)
+	displayLogo(version, codename)
 	var once sync.Once
 	doCleanup := func() {
 		once.Do(func() {
@@ -322,11 +306,9 @@ mainloop:
 
 		line, err = pr.Run()
 		if err != nil {
-			if err == prompt.ErrInterrupted {
+			if errors.Is(err, prompt.ErrInterrupted) {
 				if len(line) == 0 {
 					break
-				} else {
-					continue
 				}
 			} else {
 				log.Fatal(err)
@@ -371,9 +353,9 @@ mainloop:
 				pr.SetPrefix(mertonShell.formatPrompt(cwd))
 			}
 		case "download":
-			mertonShell.Download(ctx, c, pr, line)
+			Download(ctx, &mertonShell, c, line)
 		case "upload":
-			mertonShell.Upload(ctx, c, pr, line, hostname, serveport)
+			Upload(ctx, &mertonShell, c, line, hostname, serveport)
 		default:
 			result, err := mertonShell.dispatch(ctx, c, line)
 			if err != nil {
@@ -412,7 +394,7 @@ func (sh *MertonShell) dispatch(ctx context.Context, c *client.Client, commandLi
 			// we need to output the error and continue the shell
 			return &client.Result{
 				Output: nil,
-				Errors: []interface{}{err.Error()},
+				Errors: []any{err.Error()},
 			}, nil
 
 		}
@@ -422,7 +404,7 @@ func (sh *MertonShell) dispatch(ctx context.Context, c *client.Client, commandLi
 		switch strings.ToLower(parts[0]) {
 		case "cd", "chdir":
 			if len(parts) < 2 {
-				return &client.Result{Output: []interface{}{sh.cmdCWD}}, nil
+				return &client.Result{Output: []any{sh.cmdCWD}}, nil
 			}
 			if err := sh.setCWD(parts[1]); err != nil {
 				return nil, err
@@ -434,7 +416,7 @@ func (sh *MertonShell) dispatch(ctx context.Context, c *client.Client, commandLi
 		if err != nil {
 			return &client.Result{
 				Output: nil,
-				Errors: []interface{}{err.Error()},
+				Errors: []any{err.Error()},
 			}, nil
 		}
 		return sh.toResult(cmdResult), nil
@@ -444,7 +426,7 @@ func (sh *MertonShell) dispatch(ctx context.Context, c *client.Client, commandLi
 }
 
 func commandHandler(commandLine string) string {
-	// handle any necessary conversions from powershell to winrs, specifically gci because it doesn't deserialize correctly over psrp
+	// handle any necessary conversions from PowerShell to WinRS, specifically gci because it doesn't deserialize correctly over psrp
 	var psrpCommandMap = map[string]string{
 		"dir":                  "cmd /c dir /a",
 		"ls":                   "cmd /c dir /a",
@@ -456,7 +438,7 @@ func commandHandler(commandLine string) string {
 	}
 	parts := utils.SplitCommandLine(commandLine)
 	command := parts[0]
-	args := []string{}
+	var args []string
 	if len(parts) > 1 {
 		args = parts[1:]
 	}
@@ -465,7 +447,7 @@ func commandHandler(commandLine string) string {
 	if cmd, ok := psrpCommandMap[strings.ToLower(command)]; ok {
 		// remap together into a single command string to be executed by winrs
 		if len(args) > 0 {
-			// check if args has /a in it and remove it since we add it automagically
+			// check if args has an /a in it and remove it since we add it automagically
 			for i, arg := range args {
 				if arg == "/a" {
 					args = append(args[:i], args[i+1:]...)
@@ -496,7 +478,7 @@ func (sh *MertonShell) formatPrompt(cwd string) string {
 	return fmt.Sprintf("(%s)> %s ", sh.shellType.String(), cwd)
 }
 
-func displayLogo(version string) {
+func displayLogo(version string, codename string) {
 	logo := `
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡠⣤⣤⣤⠤⣄⡀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡤⠊⣡⡾⠛⠉⠛⢿⣿⠛⢶⡶⢦⡀⠀⠀
@@ -512,7 +494,7 @@ func displayLogo(version string) {
 ⢠⣎⡀⠠⣴⣣⣀⣀⡰⠋⠀⢉⣳⣞⠁⠟⠷⠁⠀⠀⢠⠮⠔⠊⠁⣠⢎⠉⠋⠮⣼⣩⠁⠀⢀⡱⡇⠀⠀⠀
 ⠘⢢⣼⢤⣙⣻⠟⠋⠀⠀⠀⠘⢄⣼⣀⡀⠀⠀⣠⠔⠁⠀⠀⠀⠀⠙⠪⠶⠒⠊⠁⠙⠤⢴⡡⠟⠀⠀⠀⠀
 ⠀⠀⠈⠉⠁⠀⠀⠀⠀⠀⠀⠀⠈⠓⠒⠛⠒⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀
-   Merton %s
+   Merton %s - %s
 `
-	_, _ = fmt.Fprintf(os.Stdout, logo, version)
+	_, _ = fmt.Fprintf(os.Stdout, logo, version, codename)
 }

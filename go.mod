@@ -3,7 +3,6 @@ module github.com/investigato/merton
 go 1.26.1
 
 require (
-	github.com/google/uuid v1.6.0
 	github.com/investigato/go-psrp v0.0.0-20260402202313-9b875aae485c
 	github.com/investigato/go-psrpcore v0.0.0-20260402201625-a913345070f5
 	github.com/investigato/prompt v0.0.0-20260402202707-389f1b4166ce
@@ -18,6 +17,7 @@ require (
 	github.com/go-crypt/x v0.4.13 // indirect
 	github.com/go-krb5/x v0.3.2 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/investigato/krb5 v0.0.0-20260402124344-2b982cedc855 // indirect
 	github.com/investigato/ntlmssp v0.0.0-20260402144643-d52285ca2ad6 // indirect

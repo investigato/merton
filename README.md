@@ -91,13 +91,13 @@ merton -i <host> -u <username> -p <password> [flags]
 
 ### Shell Commands
 
-| Command | Description |
-|---------|-------------|
-| `chsh` | Toggle between PowerShell (PSRP) and CMD (WinRS) |
-| `upload <local> <remote>` | Upload a file to the target |
-| `download <remote> <local>` | Download a file from the target |
-| `serveport <port>` | Change the port used for file transfers |
-| `exit` / `quit` | Close the session |
+| Command                     | Description                                      |
+|-----------------------------|--------------------------------------------------|
+| `chsh`                      | Toggle between PowerShell (PSRP) and CMD (WinRS) |
+| `upload <local> <remote>`   | Upload a file to the target                      |
+| `download <remote> <local>` | Download a file from the target                  |
+| `serveport <port>`          | Change the port used for file transfers          |
+| `exit` / `quit`             | Close the session                                |
 
 ---
 

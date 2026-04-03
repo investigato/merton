@@ -2,18 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"net/http"
-
 	"github.com/investigato/go-psrp/client"
-	"github.com/investigato/prompt"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -29,7 +28,7 @@ func outboundIP(target string) (string, error) {
 	return conn.LocalAddr().(*net.UDPAddr).IP.String(), nil
 }
 
-func (sh *MertonShell) Download(ctx context.Context, c *client.Client, pr *prompt.Prompt, line string) {
+func Download(ctx context.Context, sh *MertonShell, c *client.Client, line string) {
 	if sh.shellType == WinRsShell {
 		fmt.Println("Download command is not supported in WinRS shell")
 		return
@@ -89,7 +88,7 @@ func (sh *MertonShell) Download(ctx context.Context, c *client.Client, pr *promp
 	}
 }
 
-func (sh *MertonShell) Upload(ctx context.Context, c *client.Client, pr *prompt.Prompt, line string, hostname string, port int) {
+func Upload(ctx context.Context, sh *MertonShell, c *client.Client, line string, hostname string, port int) {
 	if sh.shellType == WinRsShell {
 		fmt.Println("Upload command is not supported in WinRS shell")
 		return
@@ -172,7 +171,7 @@ func startServer(hostIP string, port int, filePath string, fileSize int64, bar *
 		Handler: mux,
 	}
 
-	mux.HandleFunc("/"+filepath.Base(filePath), func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/"+filepath.Base(filePath), func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filepath.Base(filePath)))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize))
@@ -190,7 +189,7 @@ func startServer(hostIP string, port int, filePath string, fileSize int64, bar *
 			}
 		}()
 	})
-	mux.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/shutdown", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		if _, writeErr := w.Write([]byte("Shutting down server")); writeErr != nil {
 			log.Printf("failed to write shutdown response: %v", writeErr)
@@ -210,7 +209,7 @@ func startServer(hostIP string, port int, filePath string, fileSize int64, bar *
 	}
 
 	go func() {
-		if err := server.Serve(ln); err != http.ErrServerClosed {
+		if err := server.Serve(ln); !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("HTTP server error: %v", err)
 		}
 	}()
@@ -229,11 +228,14 @@ func serveAndNotify(ctx context.Context, c *client.Client, localPath, remotePath
 	if err != nil {
 		return "", fmt.Errorf("failed to stat local file: %w", err)
 	}
-
+	//goland:noinspection HttpUrlsUsage
 	fileURL := fmt.Sprintf("http://%s:%d/%s", localIP, port,
 		filepath.Base(localPath))
-	fmt.Fprintf(os.Stderr, "Serving %s from %s\n", filepath.Base(localPath),
+	_, err = fmt.Fprintf(os.Stderr, "Serving %s from %s\n", filepath.Base(localPath),
 		fileURL)
+	if err != nil {
+		return "", err
+	}
 
 	bar := progressbar.NewOptions64(fileInfo.Size(),
 		progressbar.OptionSetDescription("Uploading"),
@@ -248,13 +250,21 @@ func serveAndNotify(ctx context.Context, c *client.Client, localPath, remotePath
 
 	cmd := fmt.Sprintf("iwr '%s' -OutFile '%s'", fileURL, remotePath)
 	if _, err := c.Execute(ctx, cmd); err != nil {
-		// need to shutdown the server if the command fails, otherwise it will keep running until the file is fully downloaded
-		if _, shutdownErr := http.Get(fmt.Sprintf("http://%s:%d/shutdown", localIP, port)); shutdownErr != nil {
+		// need to shut down the server if the command fails, otherwise it will keep running until the file is fully downloaded
+		if //goland:noinspection HttpUrlsUsage
+		resp, shutdownErr := http.Get(fmt.Sprintf("http://%s:%d/shutdown", localIP, port)); shutdownErr != nil {
 			log.Printf("failed to shutdown server: %v", shutdownErr)
+		} else {
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				log.Printf("failed to close shutdown response body: %v", closeErr)
+			}
 		}
+
 		return "", fmt.Errorf("failed to execute download command: %w", err)
 	}
 
-	fmt.Fprintln(os.Stderr)
+	if _, err := fmt.Fprintln(os.Stderr); err != nil {
+		return "", fmt.Errorf("failed to write newline to stderr: %w", err)
+	}
 	return fileURL, nil
 }

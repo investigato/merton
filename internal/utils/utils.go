@@ -1,16 +1,11 @@
 package utils
 
 import (
-	"encoding/base64"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
-	"unicode/utf16"
 
-	"github.com/google/uuid"
 	"github.com/investigato/go-psrp/client"
 	"github.com/investigato/go-psrpcore/serialization"
 )
@@ -62,14 +57,21 @@ func renderService(obj *serialization.PSObject) string {
 func renderServiceTable(objs []*serialization.PSObject) string {
 	var sb strings.Builder
 
-	fmt.Fprintf(&sb, "%-10s %-20s %s\n", "Status", "Name", "DisplayName")
-	fmt.Fprintf(&sb, "%-10s %-20s %s\n", "------", "----", "-----------")
+	if _, err := fmt.Fprintf(&sb, "%-10s %-20s %s\n", "Status", "Name", "DisplayName"); err != nil {
+		return ""
+	}
+
+	if _, err := fmt.Fprintf(&sb, "%-10s %-20s %s\n", "------", "----", "-----------"); err != nil {
+		return ""
+	}
 
 	for _, obj := range objs {
 		status := FormatObject(obj.Properties["Status"])
 		name := FormatObject(obj.Properties["ServiceName"])
 		display := FormatObject(obj.Properties["DisplayName"])
-		fmt.Fprintf(&sb, "%-10s %-20s %s\n", status, name, display)
+		if _, err := fmt.Fprintf(&sb, "%-10s %-20s %s\n", status, name, display); err != nil {
+			return ""
+		}
 	}
 
 	return sb.String()
@@ -85,14 +87,20 @@ func renderScheduledTask(obj *serialization.PSObject) string {
 func renderScheduledTaskTable(objs []*serialization.PSObject) string {
 	var sb strings.Builder
 
-	fmt.Fprintf(&sb, "%-10s %-30s %s\n", "State", "Name", "Path")
-	fmt.Fprintf(&sb, "%-10s %-30s %s\n", "-----", "----", "----")
+	if _, err := fmt.Fprintf(&sb, "%-10s %-30s %s\n", "State", "Name", "Path"); err != nil {
+		return ""
+	}
+	if _, err := fmt.Fprintf(&sb, "%-10s %-30s %s\n", "-----", "----", "----"); err != nil {
+		return ""
+	}
 
 	for _, obj := range objs {
 		state := FormatObject(obj.Properties["State"])
 		name := FormatObject(obj.Properties["TaskName"])
 		path := FormatObject(obj.Properties["TaskPath"])
-		fmt.Fprintf(&sb, "%-10s %-30s %s\n", state, name, path)
+		if _, err := fmt.Fprintf(&sb, "%-10s %-30s %s\n", state, name, path); err != nil {
+			return ""
+		}
 	}
 
 	return sb.String()
@@ -101,8 +109,12 @@ func renderScheduledTaskTable(objs []*serialization.PSObject) string {
 func renderProcessTable(objs []*serialization.PSObject) string {
 	var sb strings.Builder
 
-	fmt.Fprintf(&sb, "%-8s %-10s %-10s %-30s\n", "PID", "CPU", "Memory(MB)", "Name")
-	fmt.Fprintf(&sb, "%-8s %-10s %-10s %-30s\n", "---", "---", "----------", "----")
+	if _, err := fmt.Fprintf(&sb, "%-8s %-10s %-10s %-30s\n", "PID", "CPU", "Memory(MB)", "Name"); err != nil {
+		return ""
+	}
+	if _, err := fmt.Fprintf(&sb, "%-8s %-10s %-10s %-30s\n", "---", "---", "----------", "----"); err != nil {
+		return ""
+	}
 
 	for _, obj := range objs {
 		pid := FormatObject(obj.Properties["Id"])
@@ -115,7 +127,9 @@ func renderProcessTable(objs []*serialization.PSObject) string {
 				memStr = fmt.Sprintf("%.1f", float64(bytes)/1024/1024)
 			}
 		}
-		fmt.Fprintf(&sb, "%-8s %-10s %-10s %-30s\n", pid, cpu, memStr, name)
+		if _, err := fmt.Fprintf(&sb, "%-8s %-10s %-10s %-30s\n", pid, cpu, memStr, name); err != nil {
+			return ""
+		}
 	}
 
 	return sb.String()
@@ -124,8 +138,12 @@ func renderProcessTable(objs []*serialization.PSObject) string {
 func renderTCPConnectionTable(objs []*serialization.PSObject) string {
 	var sb strings.Builder
 
-	fmt.Fprintf(&sb, "%-22s %-22s %-13s %-13s %-13s %s\n", "Local Address", "Local Port", "Remote Address", "Remote Port", "State", "Process")
-	fmt.Fprintf(&sb, "%-22s %-22s %-13s %-13s %-13s %s\n", "-------------", "--------------", "-------------", "--------------", "-----", "-------")
+	if _, err := fmt.Fprintf(&sb, "%-22s %-22s %-13s %-13s %-13s %s\n", "Local Address", "Local Port", "Remote Address", "Remote Port", "State", "Process"); err != nil {
+		return ""
+	}
+	if _, err := fmt.Fprintf(&sb, "%-22s %-22s %-13s %-13s %-13s %s\n", "-------------", "--------------", "-------------", "--------------", "-----", "-------"); err != nil {
+		return ""
+	}
 
 	for _, obj := range objs {
 		localAddress := FormatObject(obj.Properties["LocalAddress"])
@@ -134,7 +152,9 @@ func renderTCPConnectionTable(objs []*serialization.PSObject) string {
 		remotePort := FormatObject(obj.Properties["RemotePort"])
 		state := FormatObject(obj.Properties["State"])
 		process := FormatObject(obj.Properties["OwningProcess"])
-		fmt.Fprintf(&sb, "%-22s %-22s %-13s %-13s %-13s %s\n", localAddress, localPort, remoteAddress, remotePort, state, process)
+		if _, err := fmt.Fprintf(&sb, "%-22s %-22s %-13s %-13s %-13s %s\n", localAddress, localPort, remoteAddress, remotePort, state, process); err != nil {
+			return ""
+		}
 	}
 
 	return sb.String()
@@ -161,17 +181,6 @@ func renderGeneric(obj *serialization.PSObject) string {
 	return fmt.Sprintf("<%s>", obj.TypeNames[0])
 }
 
-func NewUUID() string {
-	return strings.ToUpper(uuid.New().String())
-}
-
-func ConvertToBase64(input string) string {
-	return base64.StdEncoding.EncodeToString([]byte(input))
-}
-
-func ConvertToBase64Bytes(input string) []byte {
-	return []byte(ConvertToBase64(input))
-}
 func ParsePort(portStr string) (int, error) {
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
@@ -181,61 +190,6 @@ func ParsePort(portStr string) (int, error) {
 		return 0, fmt.Errorf("port number must be between 1 and 65535")
 	}
 	return port, nil
-}
-func EndpointParser(host string, port int, insecure bool) (*string, error) {
-	var enteredString string
-	var enteredPort int
-
-	enteredString = strings.ToLower(host)
-	enteredPort = port
-
-	// does host already have a scheme? if so, adjust it based on the insecure flag
-	if strings.HasPrefix(enteredString, "http://") || strings.HasPrefix(enteredString, "https://") {
-		// Endpoint already has a scheme, adjust it based on insecure flag
-		if insecure && strings.HasPrefix(enteredString, "https://") {
-			enteredString = strings.Replace(enteredString, "https://", "http://", 1)
-		} else if !insecure && strings.HasPrefix(enteredString, "http://") {
-			enteredString = strings.Replace(enteredString, "http://", "https://", 1)
-		}
-	} else {
-		// No scheme, add it based on insecure flag
-		scheme := "https://"
-		if insecure {
-			scheme = "http://"
-		}
-		enteredString = scheme + enteredString + ":" + strconv.Itoa(enteredPort)
-	}
-
-	if !strings.HasSuffix(enteredString, "/wsman") {
-		enteredString += "/wsman"
-	}
-
-	return &enteredString, nil
-}
-
-func DomainParser(host string, username string, domain string) (string, error) {
-	// try to parse the domain from the endpoint if it is not provided as a separate argument
-	if domain != "" {
-		return domain, nil
-	}
-
-	// if host is an IP address, we can't parse a domain from it, so return an empty string
-	if net.ParseIP(host) != nil {
-		return "", nil
-	}
-
-	if strings.Contains(username, "\\") {
-		parts := strings.SplitN(username, "\\", 2)
-		return parts[0], nil
-	}
-
-	if strings.Contains(username, "@") {
-		parts := strings.SplitN(username, "@", 2)
-		return parts[1], nil
-	}
-
-	// if we can't parse a domain from the host or username, return an empty string
-	return "", nil
 }
 
 func EscapeCommandLineArgs(args []string) string {
@@ -250,11 +204,6 @@ func EscapeCommandLineArgs(args []string) string {
 		escapedArgs = append(escapedArgs, escapedArg)
 	}
 	return strings.Join(escapedArgs, " ")
-}
-
-func PrettifyScreenOutput(output string) string {
-	// Replace carriage return + newline with just newline for better readability
-	return strings.ReplaceAll(output, "\r\n", "\n")
 }
 
 func SplitCommandLine(commandLine string) []string {
@@ -293,11 +242,6 @@ func SafeJoinCommandAndArgs(command string, args []string) string {
 	return command
 }
 
-func SafeJoinArgs(args []string) string {
-	escapedArgs := EscapeCommandLineArgs(args)
-	return escapedArgs
-}
-
 func ProcessResult(result *client.Result) string {
 	var sb strings.Builder
 	if objs, ok := asPSObjectSlice(result.Output); ok {
@@ -312,11 +256,11 @@ func ProcessResult(result *client.Result) string {
 		case *serialization.PSObject:
 			sb.WriteString(renderPSObject(v))
 			sb.WriteRune('\n')
-		case []interface{}:
+		case []any:
 			if objs, ok := asPSObjectSlice(v); ok { // v not result.Output
 				return renderPSObjects(objs)
 			}
-		case map[string]interface{}:
+		case map[string]any:
 			for key, val := range v {
 				sb.WriteString(fmt.Sprintf("%s=%v\n", key, val))
 			}
@@ -335,7 +279,7 @@ func ProcessResult(result *client.Result) string {
 
 	return sb.String()
 }
-func asPSObjectSlice(items []interface{}) ([]*serialization.PSObject, bool) {
+func asPSObjectSlice(items []any) ([]*serialization.PSObject, bool) {
 	if len(items) == 0 {
 		return nil, false
 	}
@@ -350,7 +294,7 @@ func asPSObjectSlice(items []interface{}) ([]*serialization.PSObject, bool) {
 	return out, true
 }
 
-// task
+// ScheduledTask task
 type ScheduledTask struct {
 	TaskName string
 	State    string
@@ -474,8 +418,8 @@ func ParseHash(hashStr string) ([]byte, error) { // The hash string can be in th
 	return decoded, nil // Assume the entire string is the NTHash
 }
 
-// formatObject converts a deserialized CLIXML object to a human-readable string.
-func FormatObject(v interface{}) string {
+// FormatObject converts a deserialized CLIXML object to a human-readable string.
+func FormatObject(v any) string {
 	if v == nil {
 		return "<nil>"
 	}
@@ -496,7 +440,7 @@ func FormatObject(v interface{}) string {
 			parts = append(parts, fmt.Sprintf("%s=%s", k, FormatObject(prop)))
 		}
 		return strings.Join(parts, " ")
-	case []interface{}:
+	case []any:
 		// Format slices recursively
 		var items []string
 		for _, item := range val {
@@ -512,42 +456,7 @@ func FormatObject(v interface{}) string {
 	}
 }
 
-func EncodePowerShellScript(script string) string {
-	u16 := utf16.Encode([]rune(script))
-	buf := make([]byte, len(u16)*2)
-	for i, u := range u16 {
-		binary.LittleEndian.PutUint16(buf[i*2:], u)
-	}
-	return base64.StdEncoding.EncodeToString(buf)
-}
-
-func ParseKerberosCredentials(username, domain string) (string, string) {
-	// after parsing, the REALM must be returned in uppercase, and the username should be returned without the domain part.
-	// username might be DOMAIN\USER, DOMAIN\\USER, DOMAIN/USER, or USER@DOMAIN, or just USER with a separate domain argument.
-	const partTwo = 2
-	if domain != "" {
-		return username, strings.ToUpper(domain)
-	}
-
-	if strings.Contains(username, "\\") {
-		parts := strings.SplitN(username, "\\", partTwo)
-		return parts[1], strings.ToUpper(parts[0])
-	}
-
-	if strings.Contains(username, "/") {
-		parts := strings.SplitN(username, "/", partTwo)
-		return parts[1], strings.ToUpper(parts[0])
-	}
-
-	if strings.Contains(username, "@") {
-		parts := strings.SplitN(username, "@", partTwo)
-		return parts[0], strings.ToUpper(parts[1])
-	}
-
-	return username, ""
-}
-
-func toInt64(v interface{}) (int64, bool) {
+func toInt64(v any) (int64, bool) {
 	switch n := v.(type) {
 	case int32:
 		return int64(n), true

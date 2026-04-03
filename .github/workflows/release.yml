@@ -1,0 +1,67 @@
+# .github/workflows/release.yml
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Resolve codename
+        id: meta
+        run: |
+          declare -A CODENAMES
+          CODENAMES["v0.0.1"]="percent-of-the-time-it-works-everytime"
+
+          TAG="${{ github.ref_name }}"
+          CODENAME="${CODENAMES[$TAG]:-unknown}"
+          echo "codename=$CODENAME" >> $GITHUB_OUTPUT
+
+      - name: Build all targets
+        run: |
+          mkdir -p dist
+          make release-all \
+            VERSION=${{ github.ref_name }} \
+            CODENAME=${{ steps.meta.outputs.codename }} \
+            BUILDTIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+      - name: SHA256 checksums
+        working-directory: dist
+        run: sha256sum merton-* > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "${{ github.ref_name }}"
+          body: |
+            ## ${{ github.ref_name }}
+
+            | File | Platform |
+            |------|----------|
+            | `merton-linux-amd64` | Linux x86_64 |
+            | `merton-linux-arm64` | Linux ARM64 |
+            | `merton-windows-amd64.exe` | Windows x86_64 |
+            | `merton-darwin-arm64` | macOS Apple Silicon |
+          files: |
+            dist/merton-*
+            dist/checksums.txt
+          generate_release_notes: true
