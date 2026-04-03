@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/fatih/color v1.19.0
-	github.com/investigato/go-psrp v0.0.0-20260403175211-89d751866be9
+	github.com/investigato/go-psrp v0.0.0-20260403180310-f53b498b3bbd
 	github.com/investigato/go-psrpcore v0.0.0-20260402201625-a913345070f5
 	github.com/investigato/prompt v0.0.0-20260402202707-389f1b4166ce
 	github.com/schollz/progressbar/v3 v3.19.0
