@@ -21,7 +21,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/investigato/krb5 v0.0.0-20260402124344-2b982cedc855 // indirect
-	github.com/investigato/ntlmssp v0.0.0-20260402144643-d52285ca2ad6 // indirect
+	github.com/investigato/ntlmssp v0.0.0-20260403174159-9db15b001dc1 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.22 // indirect

@@ -32,6 +32,8 @@ github.com/investigato/krb5 v0.0.0-20260402124344-2b982cedc855 h1:ZvbWXqGcnws0Sw
 github.com/investigato/krb5 v0.0.0-20260402124344-2b982cedc855/go.mod h1:f9pfeatrRVkR+3N27fw5/ZmyD8tFWrCNgGlvqEu+yUc=
 github.com/investigato/ntlmssp v0.0.0-20260402144643-d52285ca2ad6 h1:2l97tHwPV9LCFFZyNOLzF70qTQc2ZwxRMzoktoPYsew=
 github.com/investigato/ntlmssp v0.0.0-20260402144643-d52285ca2ad6/go.mod h1:eg3BavLY81DBGfRkdfIu+X1pYrYy0Qo/zTaOaPh3qKs=
+github.com/investigato/ntlmssp v0.0.0-20260403174159-9db15b001dc1 h1:bF7ddZxHEGzLchtcgIgfjyLKDmqYE6r7+lg+NyCUh8w=
+github.com/investigato/ntlmssp v0.0.0-20260403174159-9db15b001dc1/go.mod h1:eg3BavLY81DBGfRkdfIu+X1pYrYy0Qo/zTaOaPh3qKs=
 github.com/investigato/prompt v0.0.0-20260402202707-389f1b4166ce h1:Q/ZVZqqQb7HLnKaQ1xf7Rg3Gb9DaPd2EJHYUlIJMH2U=
 github.com/investigato/prompt v0.0.0-20260402202707-389f1b4166ce/go.mod h1:uGfUcBbXIuTY+zE5aB6vf3o0weVNjxMY56dYjNLSZ5Y=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
