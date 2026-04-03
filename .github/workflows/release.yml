@@ -31,6 +31,7 @@ jobs:
         run: |
           declare -A CODENAMES
           CODENAMES["v0.0.1"]="percent-of-the-time-it-works-everytime"
+          CODENAMES["v0.0.2"]="let-me-try-again"
 
           TAG="${{ github.ref_name }}"
           CODENAME="${CODENAMES[$TAG]:-unknown}"

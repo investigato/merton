@@ -3,7 +3,7 @@ module github.com/investigato/merton
 go 1.26.1
 
 require (
-	github.com/investigato/go-psrp v0.0.0-20260402202313-9b875aae485c
+	github.com/investigato/go-psrp v0.0.0-20260403113041-9f7ca5b6735f
 	github.com/investigato/go-psrpcore v0.0.0-20260402201625-a913345070f5
 	github.com/investigato/prompt v0.0.0-20260402202707-389f1b4166ce
 	github.com/schollz/progressbar/v3 v3.19.0

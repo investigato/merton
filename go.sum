@@ -22,8 +22,8 @@ github.com/gorilla/sessions v1.4.0 h1:kpIYOp/oi6MG/p5PgxApU8srsSw9tuFbt46Lt7auzq
 github.com/gorilla/sessions v1.4.0/go.mod h1:FLWm50oby91+hl7p/wRxDth9bWSuk0qVL2emc7lT5ik=
 github.com/hashicorp/go-cleanhttp v0.5.2 h1:035FKYIWjmULyFRBKPs8TBQoi0x6d9G4xc9neXJWAZQ=
 github.com/hashicorp/go-cleanhttp v0.5.2/go.mod h1:kO/YDlP8L1346E6Sodw+PrpBSV4/SoxCXGY6BqNFT48=
-github.com/investigato/go-psrp v0.0.0-20260402202313-9b875aae485c h1:2CbUC/T18Cb6Z8vrI0jkFEH0GvTaXpbw6imZmQ8TdnM=
-github.com/investigato/go-psrp v0.0.0-20260402202313-9b875aae485c/go.mod h1:TMvG0UyWL0Dgqt8OZRBuwPXTlMpbKnemD+0JWODIiAs=
+github.com/investigato/go-psrp v0.0.0-20260403113041-9f7ca5b6735f h1:490xnHJc4NqXddvyUFR1IoRrj0SG8UMetCxC8nkyfUU=
+github.com/investigato/go-psrp v0.0.0-20260403113041-9f7ca5b6735f/go.mod h1:TMvG0UyWL0Dgqt8OZRBuwPXTlMpbKnemD+0JWODIiAs=
 github.com/investigato/go-psrpcore v0.0.0-20260402201625-a913345070f5 h1:PW81X7V+BFDSpCcqx9uC5c6P1MK/uaft84CVRbROMVQ=
 github.com/investigato/go-psrpcore v0.0.0-20260402201625-a913345070f5/go.mod h1:DbMTIFPfZrTk/hNMSsbajIolYbG/vjXqECSAU/WaeFk=
 github.com/investigato/krb5 v0.0.0-20260402124344-2b982cedc855 h1:ZvbWXqGcnws0Sw8qk932MjIQl1AnEAJYoGoBOyee4OU=
