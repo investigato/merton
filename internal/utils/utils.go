@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/investigato/go-psrp/client"
 	"github.com/investigato/go-psrpcore/serialization"
 )
@@ -33,6 +34,18 @@ func renderPSObject(obj *serialization.PSObject) string {
 func renderPSObjects(objs []*serialization.PSObject) string {
 	if len(objs) == 0 {
 		return ""
+	}
+	// have to check if there are even any typenames
+	if len(objs[0].TypeNames) == 0 {
+		var sb strings.Builder
+		for _, obj := range objs {
+
+			sb.WriteString(renderGeneric(obj))
+			sb.WriteRune('\n')
+			// if obj.ToString is not empty and not a CIM dump, use that instead
+			// if obj.Value is not nil, format that instead
+			return sb.String()
+		}
 	}
 	typeName := objs[0].TypeNames[0]
 	for _, obj := range objs {
@@ -168,6 +181,9 @@ func renderGeneric(obj *serialization.PSObject) string {
 	if obj.ToString != "" && !isCIMDump(obj.ToString) {
 		return obj.ToString
 	}
+	if obj.Value != nil {
+		return FormatObject(obj.Value)
+	}
 	// the fallbackiest of fallbacks
 	if len(obj.OrderedMemberKeys) > 0 {
 		var parts []string
@@ -274,7 +290,10 @@ func ProcessResult(result *client.Result) string {
 
 	// Errors, Warnings etc. handled separately with appropriate prefixes/colors
 	for _, e := range result.Errors {
-		sb.WriteString(fmt.Sprintf("[ERROR] %v\n", e))
+		// ERROR is red, message is whatever color (usually white)
+		sb.WriteString(color.RedString("ERROR: "))
+		sb.WriteString(errorCleanup(e))
+		sb.WriteRune('\n')
 	}
 
 	return sb.String()
@@ -454,6 +473,22 @@ func FormatObject(v any) string {
 	default:
 		return fmt.Sprintf("%v", v)
 	}
+}
+
+func errorCleanup(err interface{}) string {
+	if err == nil {
+		return ""
+	}
+	// list of strings to remove from error messages to make them cleaner and more user-friendly
+	cleanupList := []string{
+		"error calling remote command: ",
+		"remote error: ", "pipeline failed:", "transport failed:",
+	}
+	msg := fmt.Sprintf("%v", err)
+	for _, cleanup := range cleanupList {
+		msg = strings.ReplaceAll(msg, cleanup, "")
+	}
+	return strings.TrimSpace(msg)
 }
 
 func toInt64(v any) (int64, bool) {

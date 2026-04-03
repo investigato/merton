@@ -430,8 +430,9 @@ func commandHandler(commandLine string) string {
 	var psrpCommandMap = map[string]string{
 		"dir":                  "cmd /c dir /a",
 		"ls":                   "cmd /c dir /a",
-		"gci":                  "cmd /c dir /a",
+		"gci":                  "cmd /c dir /a", //nolint:gci
 		"get-childitem":        "cmd /c dir /a",
+		"cat":                  "type",
 		"get-nettcpconnection": "cmd /c netstat -ano",
 		"get-netipinterface":   "netsh interface show interface",
 		"get-netadapter":       "ipconfig /all",
