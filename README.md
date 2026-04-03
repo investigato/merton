@@ -26,8 +26,8 @@ Named after Merton McSnurtle, the world's fastest turtle because irony is a legi
 - **Kerberos authentication** because sometimes NTLM is too loud
 - **CMD shell** via WinRS for when you just need cmd.exe to cooperate
 - **PowerShell shell** via PSRP for when you need a real runspace
-- **Interactive prompt** with history, completion, and multiline paste support
-- **Client-side CWD tracking** because WinRM's working directory support is a ghost story
+- **Interactive prompt** with history and multiline paste support
+- **Client-side CWD tracking** because things that are in the spec sometimes never gotten implemented
 
 ---
 
@@ -36,7 +36,7 @@ Named after Merton McSnurtle, the world's fastest turtle because irony is a legi
 Merton drops you into an interactive prompt that tries not to embarrass itself:
 
 - History that persists between sessions
-- Tab completion
+- Tab completion (work in progress...)
 - Multiline paste that doesn't fire on every newline like it's personally offended
 - `cd` that actually works, because someone had to fix that
 
@@ -48,14 +48,14 @@ If it breaks, it tells you why. Usually...
 
 You can. Merton isn't trying to replace it.
 
-Merton exists because sometimes you want a WinRM client that's a single static binary, doesn't need Ruby, and was written by someone who got annoyed enough to write their own, and isn't evil.
+Merton exists because sometimes you want a WinRM client that's a single static binary, doesn't need Ruby, was written by someone who got annoyed enough to write their own, and isn't evil.
 
 Also the mascot has goggles.
 
 ## Build it
 
 ```bash
-go build -ldflags "-s -w -X main.version=0.0.1-percent-of-the-time-it-works-everytime" -trimpath ./cmd/merton
+go build -ldflags "-s -w -trimpath ./cmd/merton
 ```
 
 ## Use it
