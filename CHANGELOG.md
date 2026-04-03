@@ -14,6 +14,7 @@ Here's what investigato has been up to:
 
 - `type` & `cat` now show output correctly instead of a single-line in a multi-line file.
 - Downloads after Kerberos auth are pretty stable. Downloads after NTLM auth are...better than they were.
+- Path detection for uploads and downloads is gonna try really hard to figure out what you want and where it should go.
 
 ## [0.0.3] - 2026-04-03 - `it-works-on-my-machine`
 
