@@ -1,6 +1,6 @@
 VERSION   ?= $(shell git describe --tags --always)
 BUILDTIME ?= $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
-CODENAME  ?= percent-of-the-time-it-works-everytime
+CODENAME  ?= unknown
 MAIN_PACKAGE = main
 
 LDFLAGS := -s -w -buildid= \

@@ -24,8 +24,8 @@ github.com/gorilla/sessions v1.4.0 h1:kpIYOp/oi6MG/p5PgxApU8srsSw9tuFbt46Lt7auzq
 github.com/gorilla/sessions v1.4.0/go.mod h1:FLWm50oby91+hl7p/wRxDth9bWSuk0qVL2emc7lT5ik=
 github.com/hashicorp/go-cleanhttp v0.5.2 h1:035FKYIWjmULyFRBKPs8TBQoi0x6d9G4xc9neXJWAZQ=
 github.com/hashicorp/go-cleanhttp v0.5.2/go.mod h1:kO/YDlP8L1346E6Sodw+PrpBSV4/SoxCXGY6BqNFT48=
-github.com/investigato/go-psrp v0.0.0-20260403113041-9f7ca5b6735f h1:490xnHJc4NqXddvyUFR1IoRrj0SG8UMetCxC8nkyfUU=
-github.com/investigato/go-psrp v0.0.0-20260403113041-9f7ca5b6735f/go.mod h1:TMvG0UyWL0Dgqt8OZRBuwPXTlMpbKnemD+0JWODIiAs=
+github.com/investigato/go-psrp v0.0.0-20260403175211-89d751866be9 h1:JAdMUWd8tCgDMS2jTR3ozF0+zcFgN08XgYuUE0JP2R4=
+github.com/investigato/go-psrp v0.0.0-20260403175211-89d751866be9/go.mod h1:TMvG0UyWL0Dgqt8OZRBuwPXTlMpbKnemD+0JWODIiAs=
 github.com/investigato/go-psrpcore v0.0.0-20260402201625-a913345070f5 h1:PW81X7V+BFDSpCcqx9uC5c6P1MK/uaft84CVRbROMVQ=
 github.com/investigato/go-psrpcore v0.0.0-20260402201625-a913345070f5/go.mod h1:DbMTIFPfZrTk/hNMSsbajIolYbG/vjXqECSAU/WaeFk=
 github.com/investigato/krb5 v0.0.0-20260402124344-2b982cedc855 h1:ZvbWXqGcnws0Sw8qk932MjIQl1AnEAJYoGoBOyee4OU=
@@ -38,8 +38,8 @@ github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHP
 github.com/mattn/go-colorable v0.1.14/go.mod h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
-github.com/mattn/go-runewidth v0.0.21 h1:jJKAZiQH+2mIinzCJIaIG9Be1+0NR+5sz/lYEEjdM8w=
-github.com/mattn/go-runewidth v0.0.21/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhgLpndooCuJAs=
+github.com/mattn/go-runewidth v0.0.22 h1:76lXsPn6FyHtTY+jt2fTTvsMUCZq1k0qwRsAMuxzKAk=
+github.com/mattn/go-runewidth v0.0.22/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhgLpndooCuJAs=
 github.com/mattn/go-tty v0.0.7 h1:KJ486B6qI8+wBO7kQxYgmmEFDaFEE96JMBQ7h400N8Q=
 github.com/mattn/go-tty v0.0.7/go.mod h1:f2i5ZOvXBU/tCABmLmOfzLz9azMo5wdAaElRNnJKr+k=
 github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db h1:62I3jR2EmQ4l5rM/4FEfDWcRD+abF5XlKShorW5LRoQ=

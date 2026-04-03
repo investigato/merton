@@ -44,8 +44,8 @@ func renderPSObjects(objs []*serialization.PSObject) string {
 			sb.WriteRune('\n')
 			// if obj.ToString is not empty and not a CIM dump, use that instead
 			// if obj.Value is not nil, format that instead
-			return sb.String()
 		}
+		return sb.String()
 	}
 	typeName := objs[0].TypeNames[0]
 	for _, obj := range objs {
@@ -475,7 +475,7 @@ func FormatObject(v any) string {
 	}
 }
 
-func errorCleanup(err interface{}) string {
+func errorCleanup(err any) string {
 	if err == nil {
 		return ""
 	}

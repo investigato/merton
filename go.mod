@@ -3,7 +3,8 @@ module github.com/investigato/merton
 go 1.26.1
 
 require (
-	github.com/investigato/go-psrp v0.0.0-20260403113041-9f7ca5b6735f
+	github.com/fatih/color v1.19.0
+	github.com/investigato/go-psrp v0.0.0-20260403175211-89d751866be9
 	github.com/investigato/go-psrpcore v0.0.0-20260402201625-a913345070f5
 	github.com/investigato/prompt v0.0.0-20260402202707-389f1b4166ce
 	github.com/schollz/progressbar/v3 v3.19.0
@@ -14,7 +15,6 @@ require (
 	github.com/alexbrainman/sspi v0.0.0-20250919150558-7d374ff0d59e // indirect
 	github.com/bodgit/windows v1.0.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-	github.com/fatih/color v1.19.0 // indirect
 	github.com/go-crypt/x v0.4.13 // indirect
 	github.com/go-krb5/x v0.3.2 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -24,7 +24,7 @@ require (
 	github.com/investigato/ntlmssp v0.0.0-20260402144643-d52285ca2ad6 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.21 // indirect
+	github.com/mattn/go-runewidth v0.0.22 // indirect
 	github.com/mattn/go-tty v0.0.7 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect

@@ -436,6 +436,8 @@ func commandHandler(commandLine string) string {
 		"get-nettcpconnection": "cmd /c netstat -ano",
 		"get-netipinterface":   "netsh interface show interface",
 		"get-netadapter":       "ipconfig /all",
+		"schtasks":             "cmd /c schtasks",
+		"schtasks.exe":         "cmd /c schtasks",
 	}
 	parts := utils.SplitCommandLine(commandLine)
 	command := parts[0]

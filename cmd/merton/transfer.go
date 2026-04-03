@@ -28,6 +28,152 @@ func outboundIP(target string) (string, error) {
 	return conn.LocalAddr().(*net.UDPAddr).IP.String(), nil
 }
 
+func cleanWindowsPath(path string) string {
+	// for downloading FROM windows, need to remove all '/' and replace with '\'
+	cleanPath := strings.ReplaceAll(path, "/", "\\")
+	return cleanPath
+}
+
+func buildDownloadPaths(cwd, localPath, remotePath string) (resolvedLocalPath string, resolvedRemotePath string, err error) {
+	// does the remote path start with a drive letter followed by a colon?
+	driveLetter := ""
+	if len(remotePath) > 1 && remotePath[1] == ':' {
+		driveLetter = remotePath[:2]
+	} else // get it from the cwd if it exists
+	if len(cwd) > 1 && cwd[1] == ':' {
+		driveLetter = cwd[:2]
+	}
+	// get the rest of the path after the drive letter, if it exists
+	restOfPath := remotePath
+	if driveLetter != "" {
+		restOfPath = remotePath[2:]
+	}
+
+	// if it looks like a directory, append the filename to it
+	if strings.HasSuffix(restOfPath, "\\") || strings.HasSuffix(restOfPath, "/") || (restOfPath == "" || filepath.Ext(restOfPath) == "") {
+		resolvedRemotePath = filepath.Join(driveLetter, restOfPath, filepath.Base(localPath))
+	} else {
+		// otherwise, just join the drive letter and the rest of the path
+		resolvedRemotePath = filepath.Join(driveLetter, restOfPath)
+	}
+	// for downloading FROM windows, need to remove all '/' and replace with '\'
+	resolvedRemotePath = cleanWindowsPath(resolvedRemotePath)
+
+	return localPath, resolvedRemotePath, nil
+}
+
+func buildUploadPaths(cwd, localPath, remotePath string) (resolvedLocalPath string, resolvedRemotePath string, err error) {
+	// if remote path is not provided, use the filename in the current directory as the remote path
+	// does the localPath exist, it can be absolute or relative
+	if _, err := os.Stat(localPath); err != nil {
+		return "", "", fmt.Errorf("local file does not exist: %v", err)
+	}
+	if remotePath == "" {
+		currentDir := ""
+		if len(cwd) > 0 {
+			currentDir = strings.Trim(cwd, "[]")
+		} else {
+			currentDir = "."
+		}
+		remotePath = filepath.Join(currentDir, filepath.Base(localPath))
+
+		remotePath = cleanWindowsPath(remotePath)
+		return localPath, remotePath, nil
+	} else {
+		driveLetter := ""
+		if len(remotePath) > 1 && remotePath[1] == ':' {
+			driveLetter = remotePath[:2]
+		} else // get it from the cwd if it exists
+		if len(cwd) > 1 && cwd[1] == ':' {
+			driveLetter = cwd[:2]
+		}
+		// get the rest of the path after the drive letter, if it exists
+		restOfPath := remotePath
+		if driveLetter != "" {
+			restOfPath = remotePath[2:]
+		}
+
+		// if it looks like a directory, append the filename to it
+		if strings.HasSuffix(restOfPath, "\\") || strings.HasSuffix(restOfPath, "/") || (restOfPath == "" || filepath.Ext(restOfPath) == "") {
+			resolvedRemotePath = filepath.Join(driveLetter, restOfPath, filepath.Base(localPath))
+		} else {
+			// otherwise, just join the drive letter and the rest of the path
+			resolvedRemotePath = filepath.Join(driveLetter, restOfPath)
+		}
+		// for downloading FROM windows, need to remove all '/' and replace with '\'
+		resolvedRemotePath = cleanWindowsPath(resolvedRemotePath)
+		return localPath, resolvedRemotePath, nil
+	}
+
+}
+
+func validatePaths(method string, paths []string, cwd string) (string, string, error) {
+	switch method {
+	case "download":
+		if len(paths) < 1 {
+			return "", "", fmt.Errorf("usage: download <remote_path> [local_path]")
+		}
+		remotePath := paths[0]
+		// filepath.IsAbs with "\Users\Test" is valid, and IsAbs may return true, so catch that as well
+		if filepath.IsAbs(remotePath) || (len(remotePath) > 0 && (remotePath[0] == '\\' || remotePath[0] == '/')) {
+			// we can assume the drive letter is the same as in cwd, so if cwd is [C:\Users\admin], and remotePath is \Documents\file.txt, we can assume the full path is C:\Users\admin\Documents\file.txt
+			drive := ""
+			if len(cwd) > 1 && cwd[1] == ':' {
+				drive = cwd[:2]
+			}
+			remotePath = drive + remotePath
+		}
+		if !filepath.IsAbs(remotePath) {
+			cleanCWD := strings.Trim(cwd, "[]")
+			cleanRemotePath := strings.Trim(remotePath, "[]")
+			remotePath = filepath.Join(cleanCWD, cleanRemotePath)
+			// for downloading FROM windows, need to remove all '/' and replace with '\'
+			remotePath = cleanWindowsPath(remotePath)
+		}
+		localPath := ""
+		if len(paths) >= 2 {
+			localPath = paths[1]
+		} else {
+			currentDir, err := os.Getwd()
+			if err != nil {
+				log.Printf("Failed to get current directory: %v", err)
+				localPath = filepath.Base(strings.ReplaceAll(remotePath, "\\", "/"))
+			} else {
+				localPath = filepath.Join(currentDir, filepath.Base(strings.ReplaceAll(remotePath, "\\", "/")))
+				// if the local path is a directory, append the filename to it
+				if info, statErr := os.Stat(localPath); statErr == nil && info.IsDir() {
+					localPath = filepath.Join(localPath, filepath.Base(strings.ReplaceAll(remotePath, "\\", "/")))
+				}
+			}
+		}
+		return remotePath, localPath, nil
+	case "upload":
+		if len(paths) < 1 {
+			return "", "", fmt.Errorf("usage: upload <local_path> [remote_path]")
+		}
+		localPath := paths[0]
+		// localPath can be relative or absolute, make sure file exists before proceeding
+		if _, err := os.Stat(localPath); err != nil {
+			return "", "", fmt.Errorf("local file does not exist: %v", err)
+		}
+		remotePath := ""
+		if len(paths) >= 2 {
+			remotePath = paths[1]
+		}
+		return buildUploadPaths(cwd, localPath, remotePath)
+	default:
+		return "", "", fmt.Errorf("invalid method: %s", method)
+	}
+}
+
+func validateAbsolutePath(path string) bool {
+	if len(path) >= 3 && path[1] == ':' && (path[2] == '\\' || path[2] == '/') {
+		// to validate this path FROM linux, we need to remove drive letter and replace all '\' with '/' and check if the path exists, if it does, we can assume it's an absolute path in windows and return the original path, if it doesn't, we can assume it's a relative path and return an error
+		cleanPath := strings.ReplaceAll(path[2:], "\\", "/")
+		path = cleanPath
+	}
+	return filepath.IsAbs(path)
+}
 func Download(ctx context.Context, sh *MertonShell, c *client.Client, line string) {
 	if sh.shellType == WinRsShell {
 		fmt.Println("Download command is not supported in WinRS shell")
@@ -44,26 +190,10 @@ func Download(ctx context.Context, sh *MertonShell, c *client.Client, line strin
 		fmt.Println("Usage: download <remote_path> [local_path]")
 		return
 	}
-	remotePath := args[0]
-	if !filepath.IsAbs(remotePath) {
-		cleanCWD := strings.Trim(sh.cmdCWD, "[]")
-		cleanRemotePath := strings.Trim(remotePath, "[]")
-		remotePath = filepath.Join(cleanCWD, cleanRemotePath)
-		// for downloading FROM windows, need to remove all '/' and replace with '\'
-		remotePath = strings.ReplaceAll(remotePath, "/", "\\")
-	}
-	localPath := ""
-	if len(args) >= 2 {
-		localPath = args[1]
-	} else {
-		// just assume current directory
-		currentDir, err := os.Getwd()
-		if err != nil {
-			log.Printf("Failed to get current directory: %v", err)
-			localPath = filepath.Base(strings.ReplaceAll(remotePath, "\\", "/"))
-		} else {
-			localPath = filepath.Join(currentDir, filepath.Base(strings.ReplaceAll(remotePath, "\\", "/")))
-		}
+	remotePath, localPath, err := validatePaths("download", args, sh.cmdCWD)
+	if err != nil {
+		log.Printf("Failed to validate paths: %v", err)
+		return
 	}
 	bar := progressbar.NewOptions64(-1,
 		progressbar.OptionSetDescription(fmt.Sprintf("Downloading %s", remotePath)),
@@ -77,12 +207,12 @@ func Download(ctx context.Context, sh *MertonShell, c *client.Client, line strin
 			}
 		}),
 	}
-	err := c.FetchFile(ctx, remotePath, localPath, options...)
+	fetchErr := c.FetchFile(ctx, remotePath, localPath, options...)
 	if progressErr := bar.Finish(); progressErr != nil {
 		log.Printf("Failed to finish progress bar: %v", progressErr)
 	}
-	if err != nil {
-		log.Printf("\nDownload failed: %v", err)
+	if fetchErr != nil {
+		log.Printf("\nDownload failed: %v", fetchErr)
 	} else {
 		fmt.Printf("\nDownloaded %s to %s\n", remotePath, localPath)
 	}
@@ -104,12 +234,10 @@ func Upload(ctx context.Context, sh *MertonShell, c *client.Client, line string,
 		fmt.Println("Usage: upload <local_path> [remote_path]")
 		return
 	}
-	localPath := args[0]
-	remotePath := ""
-	if len(args) >= 2 {
-		remotePath = args[1]
-	} else {
-		remotePath = localPath
+	localPath, remotePath, err := validatePaths("upload", args, sh.cmdCWD)
+	if err != nil {
+		log.Printf("Failed to validate paths: %v", err)
+		return
 	}
 
 	info, statErr := os.Stat(localPath)

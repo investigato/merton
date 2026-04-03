@@ -105,6 +105,7 @@ merton -i <host> -u <username> -p <password> [flags]
 
 - WinRS `cd` is client-side tracked, the working directory is set at shell creation per command. Pipes and redirects require explicit `cmd /c`.
 - Upload/download over WinRS is not yet supported.
+- Downloads using NTLM auth are mostly stable. Downloads with Kerberos are like butter.
 - Kerberos keepalive not implemented so long sessions may timeout.
 
 ---
